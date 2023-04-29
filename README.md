@@ -52,4 +52,6 @@ jupyter-lab
 jupyter notebook
 
 voila
+
+pip freeze > requirements.txt
 ```

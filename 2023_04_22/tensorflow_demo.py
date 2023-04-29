@@ -1,8 +1,9 @@
-import matplotlib.pyplot as plt
 from math import floor
-import tensorflow as tf
+
+import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import mean_squared_error, r2_score
+import tensorflow as tf
 
 DATA_LENGTH = 100
 
