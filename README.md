@@ -19,6 +19,37 @@ using python  3.9.16
 # Dependency
 
 ```
+# https://scikit-learn.org/stable/
 pip install scikit-learn
 
+# https://jupyter.org/
+pip install jupyterlab
+
+pip install notebook
+
+pip install voila
+
+pip install matplotlib
+
+pip install nltk
+
+pip install wordcloud
+
+pip install gensim
+
+pip install spacy
+
+pip install seaborn
+
+pip install tensorflow-macos
+```
+
+
+# Helpful Commands
+```
+jupyter-lab
+
+jupyter notebook
+
+voila
 ```
