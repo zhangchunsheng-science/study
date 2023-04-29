@@ -15,3 +15,10 @@ source venv/bin/activate
 # Python
 
 using python  3.9.16
+
+# Dependency
+
+```
+pip install scikit-learn
+
+```
