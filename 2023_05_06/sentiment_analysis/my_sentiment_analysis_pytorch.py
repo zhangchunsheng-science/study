@@ -139,12 +139,10 @@ class Vocab:
             reserved_tokens = []
         # Sort according to frequencies
         counter = count_corpus(tokens)
-        self._token_freqs = sorted(counter.items(), key=lambda x: x[1],
-                                   reverse=True)
+        self._token_freqs = sorted(counter.items(), key=lambda x: x[1], reverse=True)
         # The index for the unknown token is 0
         self.idx_to_token = ['<unk>'] + reserved_tokens
-        self.token_to_idx = {token: idx
-                             for idx, token in enumerate(self.idx_to_token)}
+        self.token_to_idx = {token: idx for idx, token in enumerate(self.idx_to_token)}
         for token, freq in self._token_freqs:
             if freq < min_freq:
                 break
@@ -236,7 +234,7 @@ def load_data_imdb(batch_size, num_steps):
     # vocab.token_to_idx is a map like {"<unk>": 0, "<pad>": 1, "the": 2, ...}
     # key is a word and value is its index in vocab.idx_to_token
     #
-    vocab = Vocab(train_tokens, min_freq=5, reserved_tokens=['<pad>'])
+    vocab = Vocab(train_tokens, min_freq=5)
     #
     # train_features and test_features are like
     # [
@@ -501,14 +499,13 @@ class TokenEmbedding:
         return len(self.idx_to_token)
 
 
+#
 glove_embedding = TokenEmbedding('glove.6B.100d')
-
 #
 # embeds is (49347, 100)
 #
 embeds = glove_embedding[vocab.idx_to_token]
 embeds.shape  # torch.Size([49347, 100])
-
 #
 # copy embeds to net.embedding.weight (49347, 100)
 #
@@ -518,55 +515,9 @@ net.embedding.weight.data.copy_(embeds)
 #
 net.embedding.weight.requires_grad = False
 
-lr, num_epochs = 0.01, 6
+lr, num_epochs = 0.01, 5
 trainer = torch.optim.Adam(net.parameters(), lr=lr)
 loss = nn.CrossEntropyLoss(reduction="none")
-
-reduce_sum = lambda x, *args, **kwargs: x.sum(*args, **kwargs)
-argmax = lambda x, *args, **kwargs: x.argmax(*args, **kwargs)
-astype = lambda x, *args, **kwargs: x.type(*args, **kwargs)
-
-
-def accuracy(y_hat, y):
-    """Compute the number of correct predictions.
-
-    Defined in :numref:`sec_softmax_scratch`"""
-    if len(y_hat.shape) > 1 and y_hat.shape[1] > 1:
-        y_hat = argmax(y_hat, axis=1)
-    cmp = astype(y_hat, y.dtype) == y
-    return float(reduce_sum(astype(cmp, y.dtype)))
-
-
-def train_batch(net, X, y, loss, trainer, devices):
-    """Train for a minibatch with mutiple GPUs (defined in Chapter 13).
-
-    Defined in :numref:`sec_image_augmentation`"""
-    #
-    # X is (64, 500)
-    # y is (64,)
-    # so we handle 64 review data each batch
-    #
-    if isinstance(X, list):
-        # Required for BERT fine-tuning (to be covered later)
-        X = [x.to(devices[0]) for x in X]
-    else:
-        X = X.to(devices[0])
-    y = y.to(devices[0])
-    net.train()
-    trainer.zero_grad()
-    #
-    # pred (64, 2)
-    #
-    pred = net(X)
-    #
-    # l (64,)
-    #
-    l = loss(pred, y)
-    l.sum().backward()
-    trainer.step()
-    train_loss_sum = l.sum()
-    train_acc_sum = accuracy(pred, y)
-    return train_loss_sum, train_acc_sum
 
 
 class Timer:
@@ -680,7 +631,17 @@ class Accumulator:
         return self.data[idx]
 
 
-size = lambda x, *args, **kwargs: x.numel(*args, **kwargs)
+def accuracy(y_hat, y):
+    """Compute the number of correct predictions.
+
+    Defined in :numref:`sec_softmax_scratch`"""
+    argmax = lambda x, *args, **kwargs: x.argmax(*args, **kwargs)
+    astype = lambda x, *args, **kwargs: x.type(*args, **kwargs)
+    if len(y_hat.shape) > 1 and y_hat.shape[1] > 1:
+        y_hat = argmax(y_hat, axis=1)
+    cmp = astype(y_hat, y.dtype) == y
+    reduce_sum = lambda x, *args, **kwargs: x.sum(*args, **kwargs)
+    return float(reduce_sum(astype(cmp, y.dtype)))
 
 
 def evaluate_accuracy_gpu(net, data_iter, device=None):
@@ -694,6 +655,8 @@ def evaluate_accuracy_gpu(net, data_iter, device=None):
     # No. of correct predictions, no. of predictions
     metric = Accumulator(2)
 
+    size = lambda x, *args, **kwargs: x.numel(*args, **kwargs)
+
     with torch.no_grad():
         for X, y in data_iter:
             if isinstance(X, list):
@@ -704,6 +667,38 @@ def evaluate_accuracy_gpu(net, data_iter, device=None):
             y = y.to(device)
             metric.add(accuracy(net(X), y), size(y))
     return metric[0] / metric[1]
+
+
+def train_batch(net, X, y, loss, trainer, devices):
+    """Train for a minibatch with mutiple GPUs (defined in Chapter 13).
+
+    Defined in :numref:`sec_image_augmentation`"""
+    #
+    # X is (64, 500)
+    # y is (64,)
+    # so we handle 64 review data each batch
+    #
+    if isinstance(X, list):
+        # Required for BERT fine-tuning (to be covered later)
+        X = [x.to(devices[0]) for x in X]
+    else:
+        X = X.to(devices[0])
+    y = y.to(devices[0])
+    net.train()
+    trainer.zero_grad()
+    #
+    # pred (64, 2)
+    #
+    pred = net(X)
+    #
+    # l (64,)
+    #
+    l = loss(pred, y)
+    l.sum().backward()
+    trainer.step()
+    train_loss_sum = l.sum()
+    train_acc_sum = accuracy(pred, y)
+    return train_loss_sum, train_acc_sum
 
 
 def train(net, train_iter, test_iter, loss, trainer, num_epochs, devices=try_all_gpus()):
