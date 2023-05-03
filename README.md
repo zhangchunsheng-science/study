@@ -29,19 +29,23 @@ pip install notebook
 
 pip install voila
 
+#
+pip install tensorflow-macos
+
+pip install gensim
+
 pip install matplotlib
 
 pip install nltk
 
-pip install wordcloud
-
-pip install gensim
-
-pip install spacy
+pip install pandas
 
 pip install seaborn
 
-pip install tensorflow-macos
+pip install spacy
+
+pip install wordcloud
+
 ```
 
 
