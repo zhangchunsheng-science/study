@@ -1,1 +1,9 @@
 .idea
+aclImdb_v1.tar.gz
+glove.6B.100d.zip
+glove.6B.50d.zip
+aclImdb/
+glove.6B.100d/
+glove.6B.50d/
+FashionMNIST/
+*.pyc
