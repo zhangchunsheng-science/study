@@ -46,6 +46,8 @@ pip install spacy
 
 pip install wordcloud
 
+pip install d2l
+
 ```
 
 
