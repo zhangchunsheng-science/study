@@ -114,7 +114,7 @@ class SentimentalLSTM(nn.Module):
 
         # Embedding and LSTM layers
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, n_layers, dropout=drop_prob, batch_first=True)
+        self.lstm = nn.RNN(embedding_dim, hidden_dim, n_layers, dropout=drop_prob, batch_first=True)
 
         # dropout layer
         self.dropout = nn.Dropout(0.3)
@@ -163,8 +163,7 @@ class SentimentalLSTM(nn.Module):
         # initialized to zero, for hidden state and cell state of LSTM
         weight = next(self.parameters()).data
 
-        hidden = (weight.new(self.n_layers, batch_size, self.hidden_dim).zero_(),
-                  weight.new(self.n_layers, batch_size, self.hidden_dim).zero_())
+        hidden = weight.new(self.n_layers, batch_size, self.hidden_dim).zero_()
 
         return hidden
 
@@ -185,7 +184,7 @@ criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(net.parameters(), lr=lr)
 
 # training params
-epochs = 3  # 3-4 is approx where I noticed the validation loss stop decreasing
+epochs = 3  # it is approx where I noticed the validation loss stop decreasing
 counter = 0
 print_every = 100
 clip = 5  # gradient clipping
@@ -207,7 +206,7 @@ for e in range(epochs):
 
         # Creating new variables for the hidden state, otherwise
         # we'd backprop through the entire training history
-        h = tuple([each.data for each in h])
+        h = h.data
 
         # zero accumulated gradients
         net.zero_grad()
@@ -219,7 +218,7 @@ for e in range(epochs):
         loss = criterion(output.squeeze(), labels.float())
         loss.backward()
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
-        nn.utils.clip_grad_norm_(net.parameters(), clip)
+        # nn.utils.clip_grad_norm_(net.parameters(), clip)
         optimizer.step()
 
         # loss stats
@@ -231,7 +230,7 @@ for e in range(epochs):
             for inputs, labels in valid_loader:
                 # Creating new variables for the hidden state, otherwise
                 # we'd backprop through the entire training history
-                val_h = tuple([each.data for each in val_h])
+                val_h = val_h.data
                 output, val_h = net(inputs, val_h)
                 val_loss = criterion(output.squeeze(), labels.float())
                 val_losses.append(val_loss.item())
@@ -253,7 +252,7 @@ net.eval()
 for inputs, labels in test_loader:
     # Creating new variables for the hidden state, otherwise
     # we'd backprop through the entire training history
-    h = tuple([each.data for each in h])
+    h = h.data
     output, h = net(inputs, h)
 
     # calculate loss
@@ -284,25 +283,25 @@ Top ten occuring words :
 20000 2500 2500
 SentimentalLSTM(
   (embedding): Embedding(74073, 400)
-  (lstm): LSTM(400, 256, num_layers=2, batch_first=True, dropout=0.5)
+  (lstm): RNN(400, 256, num_layers=2, batch_first=True, dropout=0.5)
   (dropout): Dropout(p=0.3, inplace=False)
   (fc1): Linear(in_features=256, out_features=64, bias=True)
   (fc2): Linear(in_features=64, out_features=16, bias=True)
   (fc3): Linear(in_features=16, out_features=1, bias=True)
   (sigmoid): Sigmoid()
 )
-Epoch: 1/3... Step: 100... Loss: 0.653277... Val Loss: 0.635075
-Epoch: 1/3... Step: 200... Loss: 0.711719... Val Loss: 0.657688
-Epoch: 1/3... Step: 300... Loss: 0.710229... Val Loss: 0.666137
-Epoch: 1/3... Step: 400... Loss: 0.484649... Val Loss: 0.515293
-Epoch: 2/3... Step: 500... Loss: 0.606124... Val Loss: 0.508251
-Epoch: 2/3... Step: 600... Loss: 0.469886... Val Loss: 0.450613
-Epoch: 2/3... Step: 700... Loss: 0.462995... Val Loss: 0.422026
-Epoch: 2/3... Step: 800... Loss: 0.229011... Val Loss: 0.385836
-Epoch: 3/3... Step: 900... Loss: 0.253350... Val Loss: 0.415577
-Epoch: 3/3... Step: 1000... Loss: 0.267610... Val Loss: 0.440173
-Epoch: 3/3... Step: 1100... Loss: 0.295505... Val Loss: 0.397089
-Epoch: 3/3... Step: 1200... Loss: 0.096462... Val Loss: 0.406767
-Test loss: 0.414
-Test accuracy: 0.818
+Epoch: 1/3... Step: 100... Loss: 0.661213... Val Loss: 0.684908
+Epoch: 1/3... Step: 200... Loss: 0.646895... Val Loss: 0.678156
+Epoch: 1/3... Step: 300... Loss: 0.658241... Val Loss: 0.655073
+Epoch: 1/3... Step: 400... Loss: 0.708151... Val Loss: 0.670507
+Epoch: 2/3... Step: 500... Loss: 0.714437... Val Loss: 0.677333
+Epoch: 2/3... Step: 600... Loss: 0.583623... Val Loss: 0.679030
+Epoch: 2/3... Step: 700... Loss: 0.556463... Val Loss: 0.689040
+Epoch: 2/3... Step: 800... Loss: 0.693237... Val Loss: 0.670949
+Epoch: 3/3... Step: 900... Loss: 0.611111... Val Loss: 0.679345
+Epoch: 3/3... Step: 1000... Loss: 0.562157... Val Loss: 0.673008
+Epoch: 3/3... Step: 1100... Loss: 0.643488... Val Loss: 0.678784
+Epoch: 3/3... Step: 1200... Loss: 0.527856... Val Loss: 0.627580
+Test loss: 0.622
+Test accuracy: 0.666
 """
