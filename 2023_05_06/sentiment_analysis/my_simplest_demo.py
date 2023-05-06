@@ -141,6 +141,61 @@ class SentimentalLSTM(nn.Module):
         lstm_out, hidden = self.lstm(embedd, hidden)
 
         # stack up the lstm output
+        """
+        Explain : lstm_out.contiguous().view(-1, self.hidden_dim)
+        https://zhuanlan.zhihu.com/p/87856193
+        
+        rand_batch (2, 6, 3)
+        tensor([[[0.0772, 0.7092, 0.6349],
+                 [0.0185, 0.5159, 0.4788],
+                 [0.9981, 0.0919, 0.6252],
+                 [0.3200, 0.9756, 0.3593],
+                 [0.1527, 0.0865, 0.5679],
+                 [0.5644, 0.7417, 0.2304]],
+
+                [[0.9724, 0.2342, 0.0246],
+                 [0.8175, 0.9254, 0.1237],
+                 [0.6534, 0.5940, 0.7686],
+                 [0.6413, 0.8872, 0.9733],
+                 [0.1832, 0.8923, 0.0674],
+                 [0.3193, 0.3310, 0.8564]]])
+        
+        rand_batch.contiguous().view(-1, 3)
+
+        tensor([[0.0772, 0.7092, 0.6349],
+                [0.0185, 0.5159, 0.4788],
+                [0.9981, 0.0919, 0.6252],
+                [0.3200, 0.9756, 0.3593],
+                [0.1527, 0.0865, 0.5679],
+                [0.5644, 0.7417, 0.2304],
+                [0.9724, 0.2342, 0.0246],
+                [0.8175, 0.9254, 0.1237],
+                [0.6534, 0.5940, 0.7686],
+                [0.6413, 0.8872, 0.9733],
+                [0.1832, 0.8923, 0.0674],
+                [0.3193, 0.3310, 0.8564]])
+                
+        rand_batch.contiguous().view(-1, 2)
+        
+        tensor([[0.0772, 0.7092],
+                [0.6349, 0.0185],
+                [0.5159, 0.4788],
+                [0.9981, 0.0919],
+                [0.6252, 0.3200],
+                [0.9756, 0.3593],
+                [0.1527, 0.0865],
+                [0.5679, 0.5644],
+                [0.7417, 0.2304],
+                [0.9724, 0.2342],
+                [0.0246, 0.8175],
+                [0.9254, 0.1237],
+                [0.6534, 0.5940],
+                [0.7686, 0.6413],
+                [0.8872, 0.9733],
+                [0.1832, 0.8923],
+                [0.0674, 0.3193],
+                [0.3310, 0.8564]])
+        """
         lstm_out = lstm_out.contiguous().view(-1, self.hidden_dim)  # lstm_out (batch_size * sequence_length, hidden_dim)
 
         # dropout and fully connected layers
@@ -152,6 +207,26 @@ class SentimentalLSTM(nn.Module):
         out = self.fc3(out)           # out (batch_size * sequence_length, 1)
         sig_out = self.sigmoid(out)   # sig_out (batch_size * sequence_length, 1)
 
+        """
+        Explain : sig_out.view(batch_size, -1)
+        rand_batch (2 * 6, 1)
+        rand_batch = tensor([[0.4004],
+                             [0.1207],
+                             [0.8809],
+                             [0.0402],
+                             [0.5510],
+                             [0.8942],
+                             [0.5614],
+                             [0.1065],
+                             [0.0716],
+                             [0.1186],
+                             [0.8825],
+                             [0.8698]])
+                
+        rand_batch.view(2, -1)
+        tensor([[0.4004, 0.1207, 0.8809, 0.0402, 0.5510, 0.8942],
+                [0.5614, 0.1065, 0.0716, 0.1186, 0.8825, 0.8698]])
+        """
         sig_out = sig_out.view(batch_size, -1)  # sig_out (batch_size, sequence_length)
         sig_out = sig_out[:, -1]                # sig_out (batch_size,)
 
